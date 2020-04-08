@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:barcode_scan/barcode_scan.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -17,20 +18,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String barcode = "";
-  String qrcodefind;
-  List<String> latlng;
-  double lat;
-  double long;
-  Marker mark = new Marker(
-    width: 10.0,
-    height: 10.0,
-    point: new LatLng(43.411223,5.371936),
-    builder: (ctx) =>
-    new Container(
-      child: new Icon(Icons.location_on),
-    ),
-  );
+  String text = '';
 
   List<Marker> markers = [
     new Marker(
@@ -44,9 +32,9 @@ class _MyAppState extends State<MyApp> {
     ),
   ];
 
-  updateMarker() {
+  updateMarker(Marker marker) {
     setState(() {
-      markers.add(mark);
+      markers.add(marker);
     });
   }
   @override
@@ -71,53 +59,50 @@ class _MyAppState extends State<MyApp> {
                 ),
               ],
             ),
-
           ),
-          floatingActionButton: SpeedDial(
-            animatedIcon: AnimatedIcons.menu_close,
-            children: [
-              SpeedDialChild(
-                child: Icon(Icons.camera_alt),
-                label: "scan",
-                onTap: scan,
-              ),
-              SpeedDialChild(
-                child: Icon(Icons.add),
-                label: "Add Marker",
-                onTap: updateMarker,
-              ),
-              SpeedDialChild(
-                label: qrcodefind,
-              ),
-            ]
+          floatingActionButton: FloatingActionButton.extended(
+              icon: Icon(Icons.camera_alt),
+              label: Text("scan"),
+              onPressed: scan
           ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         )
     );
   }
 
   Future scan() async {
+    Marker marker = new Marker(
+      width: 10.0,
+      height: 10.0,
+      point: new LatLng(43.411223,5.371936),
+      builder: (ctx) =>
+      new Container(
+        child: new Icon(Icons.location_on),
+      ),
+    );
     try {
       String qrcode = await BarcodeScanner.scan();
       setState(() {
-        qrcodefind = qrcode;
-        barcode = qrcode.replaceAll("GEO:", "");
-        latlng = barcode.split(",");
-        lat = latlng.elementAt(0) as double;
-        long = latlng.elementAt(1) as double;
+        text = qrcode as String;
+        String barcode = qrcode.replaceAll("GEO:", "");
+        List<String> latlng = barcode.split(",");
+        double lat = latlng.elementAt(0) as double;
+        double long = latlng.elementAt(1) as double;
       });
     } on PlatformException catch (e) {
       if (e.code == BarcodeScanner.CameraAccessDenied) {
         setState(() {
-          barcode = 'The user did not grant the camera permission!';
+          text = 'Utilisation de la camera non permisse';
         });
       } else {
-        setState(() => barcode = 'Unknown error: $e');
+        setState(() => text = 'Erreur lors du scan');
       }
     } on FormatException {
-      setState(() => barcode =
-      'null (User returned using the "back"-button before scanning anything. Result)');
+      setState(() => text =
+      'null (Appuye sur le bouton back avant le scan)');
     } catch (e) {
-      setState(() => barcode = 'Unknown error: $e');
+      setState(() => text = text as String);
     }
+    updateMarker(marker);
   }
 }
